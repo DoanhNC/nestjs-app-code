@@ -1,0 +1,15 @@
+# Bỏ qua thư mục dependencies (Cực kỳ quan trọng)
+/node_modules
+
+# Bỏ qua thư mục code đã build (chỉ build trong Docker Image)
+/dist
+
+# Bỏ qua các file môi trường nhạy cảm
+.env
+.env.local
+
+# Bỏ qua log và cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
