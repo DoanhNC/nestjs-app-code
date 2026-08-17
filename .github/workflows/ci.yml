@@ -1,0 +1,50 @@
+name: CI/CD Build & Push Image
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 📌 Bước 1: Đăng nhập vào GHCR
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 📌 Bước 2: Build & Push Docker Image (Đã fix tên chữ thường doanhnc)
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/doanhnc/nestjs-app-code:${{ github.sha }}
+            ghcr.io/doanhnc/nestjs-app-code:latest
+
+      # 📌 Bước 3: Dùng Token tự động cập nhật SHA sang Repo 2
+      - name: Update Helm Tag in Infra Repo
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub CI Runner"
+          
+          git clone https://${{ secrets.INFRA_REPO_TOKEN }}@github.com/doanhnc/nestjs-app-infra.git
+          cd nestjs-app-infra
+          
+          # Tự động thay tag mới vào values.yaml
+          sed -i 's/tag: .*/tag: "${{ github.sha }}"/' chart/values.yaml
+          
+          git add .
+          git commit -m "chore: auto-update image tag to ${{ github.sha }}" || exit 0
+          git push origin main
